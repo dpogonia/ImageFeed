@@ -10,9 +10,22 @@
 		210DB2A72FA39A2C00015BA0 /* ImageFeed.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ImageFeed.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		210DB3012FA63D5E00015BA0 /* Exceptions for "ImageFeed" folder in "ImageFeed" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 210DB2A62FA39A2C00015BA0 /* ImageFeed */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		210DB2A92FA39A2C00015BA0 /* ImageFeed */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				210DB3012FA63D5E00015BA0 /* Exceptions for "ImageFeed" folder in "ImageFeed" target */,
+			);
 			path = ImageFeed;
 			sourceTree = "<group>";
 		};
