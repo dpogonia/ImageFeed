@@ -7,13 +7,13 @@
 
 import UIKit
 
-class ProfileViewController: UIViewController {
+final class ProfileViewController: UIViewController {
     
-    private let avatarImageView = UIImageView()
-    private let nameLabel = UILabel()
-    private let loginNameLabel = UILabel()
-    private let descriptionLabel = UILabel()
-    private let logoutButton = UIButton()
+    private lazy var avatarImageView = UIImageView()
+    private lazy var nameLabel = UILabel()
+    private lazy var loginNameLabel = UILabel()
+    private lazy var descriptionLabel = UILabel()
+    private lazy var logoutButton = UIButton()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -28,7 +28,7 @@ class ProfileViewController: UIViewController {
     // MARK: - Setup
     
     private func setupAvatarImage() {
-        avatarImageView.image = UIImage(named: "avatar")
+        avatarImageView.image = UIImage(resource: .avatar)
         avatarImageView.clipsToBounds = true
         avatarImageView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(avatarImageView)
@@ -46,7 +46,7 @@ class ProfileViewController: UIViewController {
             string: "Екатерина Новикова",
             attributes: [
                 .font: UIFont.systemFont(ofSize: 23, weight: .bold),
-                .foregroundColor: UIColor(named: "YP White") ?? .white,
+                .foregroundColor: UIColor(resource: .ypWhite),
                 .kern: 0.3
             ]
         )
@@ -71,7 +71,7 @@ class ProfileViewController: UIViewController {
             attributes: [
                 .font: font,
                 .paragraphStyle: paragraphStyle,
-                .foregroundColor: UIColor(named: "YP Gray") ?? .gray
+                .foregroundColor: UIColor(resource: .ypGray)
             ]
         )
         loginNameLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -95,7 +95,7 @@ class ProfileViewController: UIViewController {
             attributes: [
                 .font: font,
                 .paragraphStyle: paragraphStyle,
-                .foregroundColor: UIColor(named: "YP White") ?? .white
+                .foregroundColor: UIColor(resource: .ypWhite)
             ]
         )
         descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -109,7 +109,7 @@ class ProfileViewController: UIViewController {
     }
     
     private func setupLogoutButton() {
-        let image = UIImage(named: "logout_button")
+        let image = UIImage(resource: .logoutButton)
         logoutButton.setImage(image, for: .normal)
         logoutButton.translatesAutoresizingMaskIntoConstraints = false
         logoutButton.addTarget(self, action: #selector(didTapLogoutButton), for: .touchUpInside)

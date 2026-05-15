@@ -42,9 +42,7 @@ final class ImagesListCell: UITableViewCell {
         dateLabel.text = date
         dateLabel.isHidden = (date == nil)
         
-        let likeImage = isLiked
-        ? UIImage(named: "like_button_on")
-        : UIImage(named: "like_button_off")
+        let likeImage = UIImage(resource: isLiked ? .likeButtonOn : .likeButtonOff)
         likeButton?.setImage(likeImage, for: .normal)
     }
     
