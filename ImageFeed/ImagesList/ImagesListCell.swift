@@ -8,13 +8,14 @@
 import UIKit
 
 final class ImagesListCell: UITableViewCell {
+    
     static let reuseIdentifier = "ImagesListCell"
     
     // MARK: - Outlets
     
-    @IBOutlet private var cellImage: UIImageView?
-    @IBOutlet private var likeButton: UIButton?
-    @IBOutlet private var dateLabel: UILabel?
+    @IBOutlet var cellImage: UIImageView!
+    @IBOutlet var likeButton: UIButton!
+    @IBOutlet var dateLabel: UILabel!
     
     // MARK: - Private properties
     
@@ -33,17 +34,15 @@ final class ImagesListCell: UITableViewCell {
         updateGradientFrame()
     }
     
-    // MARK: - Public configure
+    // MARK: - Config
     
     func configure(image: UIImage?, date: String?, isLiked: Bool) {
-        cellImage?.image = image
+        cellImage.image = image
         
-        dateLabel?.text = date
-        dateLabel?.isHidden = (date == nil)
+        dateLabel.text = date
+        dateLabel.isHidden = (date == nil)
         
-        let likeImage = isLiked
-        ? UIImage(named: "like_button_on")
-        : UIImage(named: "like_button_off")
+        let likeImage = UIImage(resource: isLiked ? .likeButtonOn : .likeButtonOff)
         likeButton?.setImage(likeImage, for: .normal)
     }
     
