@@ -9,11 +9,15 @@ import UIKit
 
 final class ProfileViewController: UIViewController {
     
+    // MARK: - Views
+    
     private lazy var avatarImageView = UIImageView()
     private lazy var nameLabel = UILabel()
     private lazy var loginNameLabel = UILabel()
     private lazy var descriptionLabel = UILabel()
     private lazy var logoutButton = UIButton()
+    
+    // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()

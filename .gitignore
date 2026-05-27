@@ -99,3 +99,12 @@ iOSInjectionProject/
 **/xcshareddata/WorkspaceSettings.xcsettings
 
 # End of https://www.toptal.com/developers/gitignore/api/swift,xcode
+
+### Cursor ###
+.cursor/
+**/.cursor/
+.cursor-tutor/
+**/.cursor-tutor/
+### VSCode/Cursor workspace (optional) ###
+.vscode/
+*.code-workspace

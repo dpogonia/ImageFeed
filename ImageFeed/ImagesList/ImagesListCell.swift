@@ -13,9 +13,9 @@ final class ImagesListCell: UITableViewCell {
     
     // MARK: - Outlets
     
-    @IBOutlet var cellImage: UIImageView!
-    @IBOutlet var likeButton: UIButton!
-    @IBOutlet var dateLabel: UILabel!
+    @IBOutlet weak var cellImage: UIImageView?
+    @IBOutlet weak var likeButton: UIButton?
+    @IBOutlet weak var dateLabel: UILabel?
     
     // MARK: - Private properties
     
@@ -37,10 +37,10 @@ final class ImagesListCell: UITableViewCell {
     // MARK: - Config
     
     func configure(image: UIImage?, date: String?, isLiked: Bool) {
-        cellImage.image = image
+        cellImage?.image = image
         
-        dateLabel.text = date
-        dateLabel.isHidden = (date == nil)
+        dateLabel?.text = date
+        dateLabel?.isHidden = (date == nil)
         
         let likeImage = UIImage(resource: isLiked ? .likeButtonOn : .likeButtonOff)
         likeButton?.setImage(likeImage, for: .normal)
@@ -65,13 +65,11 @@ final class ImagesListCell: UITableViewCell {
             baseColor.cgColor
         ]
         
-        guard let cellImage else { return }
-        cellImage.layer.insertSublayer(dateGradientLayer, at: 0)
+        cellImage?.layer.insertSublayer(dateGradientLayer, at: 0)
     }
     
     private func updateGradientFrame() {
-        guard let cellImage else { return }
-        let bounds = cellImage.bounds
+        guard let bounds = cellImage?.bounds else { return }
         guard bounds.width > 0, bounds.height > 0 else { return }
         
         let height = min(dateGradientHeight, bounds.height)
