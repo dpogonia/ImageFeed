@@ -14,27 +14,32 @@ final class SingleImageViewController: UIViewController {
     var image: UIImage? {
         didSet {
             guard isViewLoaded, let image else { return }
-            imageView.image = image
-            imageView.frame.size = image.size
+            imageView?.image = image
+            imageView?.frame.size = image.size
             rescaleAndCenterImageInScrollView(image: image)
         }
     }
     
     // MARK: - IBOutlets
     
-    @IBOutlet var scrollView: UIScrollView!
-    @IBOutlet var imageView: UIImageView!
+    @IBOutlet private weak var scrollView: UIScrollView?
+    @IBOutlet private weak var imageView: UIImageView?
     
     // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        guard let scrollView else {
+            assertionFailure("ScrollView outlet is not connected")
+            return
+        }
+
         scrollView.minimumZoomScale = 0.1
         scrollView.maximumZoomScale = 1.25
         
         guard let image else { return }
-        imageView.image = image
-        imageView.frame.size = image.size
+        imageView?.image = image
+        imageView?.frame.size = image.size
     }
     
     override func viewDidLayoutSubviews() {
@@ -61,6 +66,8 @@ final class SingleImageViewController: UIViewController {
     // MARK: - Private Methods
     
     private func rescaleAndCenterImageInScrollView(image: UIImage) {
+        guard let scrollView else { return }
+
         let minZoomScale = scrollView.minimumZoomScale
         let maxZoomScale = scrollView.maximumZoomScale
         view.layoutIfNeeded()
@@ -75,6 +82,8 @@ final class SingleImageViewController: UIViewController {
     }
     
     private func centerImage() {
+        guard let scrollView else { return }
+
         let visibleRectSize = scrollView.bounds.size
         let newContentSize = scrollView.contentSize
         let horizontalInset = max(0, (visibleRectSize.width - newContentSize.width) / 2)

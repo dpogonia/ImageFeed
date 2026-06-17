@@ -9,7 +9,9 @@ import UIKit
 
 final class ImagesListViewController: UIViewController {
     
-    @IBOutlet private var tableView: UITableView!
+    // MARK: - Outlets
+    
+    @IBOutlet private weak var tableView: UITableView?
     
     // MARK: - Constants
     
@@ -32,6 +34,11 @@ final class ImagesListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        guard let tableView else {
+            assertionFailure("TableView outlet is not connected")
+            return
+        }
+
         tableView.rowHeight = Constants.rowHeight
         tableView.contentInset = UIEdgeInsets(
             top: Constants.tableViewTopInset,
@@ -89,12 +96,12 @@ extension ImagesListViewController {
             return
         }
         
-        cell.cellImage.image = image
-        cell.dateLabel.text = dateFormatter.string(from: Date())
+        cell.cellImage?.image = image
+        cell.dateLabel?.text = dateFormatter.string(from: Date())
 
         let isLiked = indexPath.row % 2 == 0
         let likeImage = UIImage(resource: isLiked ? .likeButtonOn : .likeButtonOff)
-        cell.likeButton.setImage(likeImage, for: .normal)
+        cell.likeButton?.setImage(likeImage, for: .normal)
     }
 }
 
