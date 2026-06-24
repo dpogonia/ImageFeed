@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Kingfisher
 
 final class ProfileViewController: UIViewController {
     
@@ -17,6 +18,12 @@ final class ProfileViewController: UIViewController {
     private lazy var descriptionLabel = UILabel()
     private lazy var logoutButton = UIButton()
     
+    // MARK: - Services
+    
+    private let profileService = ProfileService.shared
+    
+    private var profileImageServiceObserver: NSObjectProtocol?
+    
     // MARK: - Lifecycle
     
     override func viewDidLoad() {
@@ -27,6 +34,97 @@ final class ProfileViewController: UIViewController {
         setupLoginNameLabel()
         setupDescriptionLabel()
         setupLogoutButton()
+        
+        if let profile = profileService.profile {
+            updateProfileDetails(profile: profile)
+        }
+        
+        profileImageServiceObserver = NotificationCenter.default.addObserver(
+            forName: ProfileImageService.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.updateAvatar()
+        }
+        updateAvatar()
+    }
+    
+    deinit {
+        if let profileImageServiceObserver {
+            NotificationCenter.default.removeObserver(profileImageServiceObserver)
+        }
+    }
+    
+    // MARK: - Profile UI
+    
+    private func updateAvatar() {
+        guard
+            let profileImageURL = ProfileImageService.shared.avatarURL,
+            let imageURL = URL(string: profileImageURL)
+        else { return }
+        
+        let processor = RoundCornerImageProcessor(cornerRadius: 35)
+        avatarImageView.kf.indicatorType = .activity
+        avatarImageView.kf.setImage(
+            with: imageURL,
+            placeholder: UIImage(resource: .avatar),
+            options: [
+                .processor(processor),
+                .scaleFactor(UIScreen.main.scale),
+                .cacheOriginalImage
+            ]
+        ) { result in
+            if case .failure(let error) = result {
+                print("[updateAvatar]: \(error)")
+            }
+        }
+    }
+    
+    private func updateProfileDetails(profile: Profile) {
+        let name = profile.name.isEmpty ? "Имя не указано" : profile.name
+        nameLabel.attributedText = NSAttributedString(
+            string: name,
+            attributes: [
+                .font: UIFont.systemFont(ofSize: 23, weight: .bold),
+                .foregroundColor: UIColor(resource: .ypWhite),
+                .kern: 0.3
+            ]
+        )
+        
+        let loginName = profile.loginName.isEmpty ? "@неизвестный_пользователь" : profile.loginName
+        let loginFont = UIFont.systemFont(ofSize: 13, weight: .regular)
+        let loginParagraphStyle = NSMutableParagraphStyle()
+        loginParagraphStyle.minimumLineHeight = 18
+        loginParagraphStyle.maximumLineHeight = 18
+        
+        loginNameLabel.attributedText = NSAttributedString(
+            string: loginName,
+            attributes: [
+                .font: loginFont,
+                .paragraphStyle: loginParagraphStyle,
+                .foregroundColor: UIColor(resource: .ypGray)
+            ]
+        )
+        
+        let bio: String
+        if let profileBio = profile.bio, !profileBio.isEmpty {
+            bio = profileBio
+        } else {
+            bio = "Профиль не заполнен"
+        }
+        let bioFont = UIFont.systemFont(ofSize: 13, weight: .regular)
+        let bioParagraphStyle = NSMutableParagraphStyle()
+        bioParagraphStyle.minimumLineHeight = 18
+        bioParagraphStyle.maximumLineHeight = 18
+        
+        descriptionLabel.attributedText = NSAttributedString(
+            string: bio,
+            attributes: [
+                .font: bioFont,
+                .paragraphStyle: bioParagraphStyle,
+                .foregroundColor: UIColor(resource: .ypWhite)
+            ]
+        )
     }
     
     // MARK: - Setup
@@ -34,6 +132,7 @@ final class ProfileViewController: UIViewController {
     private func setupAvatarImage() {
         avatarImageView.image = UIImage(resource: .avatar)
         avatarImageView.clipsToBounds = true
+        avatarImageView.layer.cornerRadius = 35
         avatarImageView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(avatarImageView)
         
@@ -46,14 +145,6 @@ final class ProfileViewController: UIViewController {
     }
     
     private func setupNameLabel() {
-        nameLabel.attributedText = NSAttributedString(
-            string: "Екатерина Новикова",
-            attributes: [
-                .font: UIFont.systemFont(ofSize: 23, weight: .bold),
-                .foregroundColor: UIColor(resource: .ypWhite),
-                .kern: 0.3
-            ]
-        )
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(nameLabel)
         
@@ -65,19 +156,6 @@ final class ProfileViewController: UIViewController {
     }
     
     private func setupLoginNameLabel() {
-        let font = UIFont.systemFont(ofSize: 13, weight: .regular)
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.minimumLineHeight = 18
-        paragraphStyle.maximumLineHeight = 18
-        
-        loginNameLabel.attributedText = NSAttributedString(
-            string: "@ekaterina_nov",
-            attributes: [
-                .font: font,
-                .paragraphStyle: paragraphStyle,
-                .foregroundColor: UIColor(resource: .ypGray)
-            ]
-        )
         loginNameLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(loginNameLabel)
         
@@ -89,19 +167,6 @@ final class ProfileViewController: UIViewController {
     }
     
     private func setupDescriptionLabel() {
-        let font = UIFont.systemFont(ofSize: 13, weight: .regular)
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.minimumLineHeight = 18
-        paragraphStyle.maximumLineHeight = 18
-        
-        descriptionLabel.attributedText = NSAttributedString(
-            string: "Hello, world!",
-            attributes: [
-                .font: font,
-                .paragraphStyle: paragraphStyle,
-                .foregroundColor: UIColor(resource: .ypWhite)
-            ]
-        )
         descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(descriptionLabel)
         
@@ -129,6 +194,39 @@ final class ProfileViewController: UIViewController {
     
     // MARK: - Actions
     
-    @objc private func didTapLogoutButton() { }
+    @objc private func didTapLogoutButton() {
+        showLogoutConfirmationAlert()
+    }
     
+    private func showLogoutConfirmationAlert() {
+        let alert = UIAlertController(
+            title: "Выход",
+            message: "Вы уверены, что хотите выйти?",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "Да", style: .default) { [weak self] _ in
+            self?.performLogout()
+        })
+        alert.addAction(UIAlertAction(title: "Нет", style: .cancel))
+        
+        present(alert, animated: true)
+    }
+    
+    private func performLogout() {
+        avatarImageView.kf.cancelDownloadTask()
+        
+        OAuth2TokenStorage.shared.token = nil
+        ProfileService.shared.clearProfileCache()
+        ProfileImageService.shared.clearAvatarCache()
+        switchToSplashScreen()
+    }
+    
+    private func switchToSplashScreen() {
+        guard let window = view.window else {
+            assertionFailure("Invalid window configuration")
+            return
+        }
+        window.rootViewController = SplashViewController()
+    }
 }

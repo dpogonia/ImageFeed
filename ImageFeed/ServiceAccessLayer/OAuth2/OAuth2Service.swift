@@ -1,5 +1,5 @@
 //
-//  олдук.swift
+//  OAuth2Service.swift
 //  ImageFeed
 //
 //  Created by Dmitrii Pogonia on 26.05.2026.
@@ -12,10 +12,14 @@ final class OAuth2Service {
     // MARK: - Singleton
     
     static let shared = OAuth2Service()
+    private let urlSession = URLSession.shared
+    private let tokenStorage = OAuth2TokenStorage.shared
     
-    // MARK: - Properties
+    // MARK: - Private properties
     
-    private let tokenStorage = OAuth2TokenStorage()
+    private var task: URLSessionTask?
+    private var lastCode: String?
+    private var activeRequestID: UUID?
     
     // MARK: - Private init
     
@@ -24,29 +28,48 @@ final class OAuth2Service {
     // MARK: - Public API
     
     func fetchOAuthToken(_ code: String, completion: @escaping (Result<String, Error>) -> Void) {
-        guard let request = makeOAuthTokenRequest(code: code) else {
-            print("OAuth token request failed: invalid request")
+        assert(Thread.isMainThread)
+        
+        guard lastCode != code else {
             completion(.failure(NetworkError.invalidRequest))
             return
         }
         
-        let task = URLSession.shared.data(for: request) { [weak self] result in
-            switch result {
-            case .success(let data):
-                do {
-                    let responseBody = try JSONDecoder().decode(OAuthTokenResponseBody.self, from: data)
-                    self?.tokenStorage.token = responseBody.accessToken
-                    completion(.success(responseBody.accessToken))
-                } catch {
-                    print("OAuth token decoding failed: \(error)")
-                    completion(.failure(NetworkError.decodingError(error)))
+        task?.cancel()
+        lastCode = code
+        
+        guard let request = makeOAuthTokenRequest(code: code) else {
+            lastCode = nil
+            print("[fetchOAuthToken]: NetworkError.invalidRequest")
+            completion(.failure(NetworkError.invalidRequest))
+            return
+        }
+        
+        let requestID = UUID()
+        activeRequestID = requestID
+        
+        let task = urlSession.objectTask(for: request) { [weak self] (result: Result<OAuthTokenResponseBody, Error>) in
+            guard let self else { return }
+            
+            defer {
+                if self.activeRequestID == requestID {
+                    self.task = nil
+                    self.lastCode = nil
+                    self.activeRequestID = nil
                 }
+            }
+            
+            switch result {
+            case .success(let body):
+                self.tokenStorage.token = body.accessToken
+                completion(.success(body.accessToken))
             case .failure(let error):
-                print("OAuth token request failed: \(error)")
+                print("[fetchOAuthToken]: \(error)")
                 completion(.failure(error))
             }
         }
         
+        self.task = task
         task.resume()
     }
     
