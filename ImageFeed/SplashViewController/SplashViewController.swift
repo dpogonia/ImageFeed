@@ -103,9 +103,33 @@ final class SplashViewController: UIViewController {
                 self.switchToTabBarController()
                 
             case .failure(let error):
-                print("[SplashViewController] Profile fetch failed: \(error)")
+                self.handleProfileFetchFailure(error)
             }
         }
+    }
+    
+    private func handleProfileFetchFailure(_ error: Error) {
+        print("[SplashViewController] Profile fetch failed: \(error)")
+        showProfileFetchErrorAlert()
+    }
+    
+    private func showProfileFetchErrorAlert() {
+        let alert = UIAlertController(
+            title: "Что-то пошло не так(",
+            message: "Не удалось загрузить профиль. Попробуйте войти снова",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Ок", style: .default) { [weak self] _ in
+            self?.resetSessionAndPresentAuth()
+        })
+        present(alert, animated: true)
+    }
+    
+    private func resetSessionAndPresentAuth() {
+        storage.token = nil
+        profileService.clearProfileCache()
+        ProfileImageService.shared.clearAvatarCache()
+        presentAuthViewController()
     }
 }
 

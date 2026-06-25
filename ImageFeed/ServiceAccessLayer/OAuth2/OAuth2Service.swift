@@ -51,6 +51,8 @@ final class OAuth2Service {
         let task = urlSession.objectTask(for: request) { [weak self] (result: Result<OAuthTokenResponseBody, Error>) in
             guard let self else { return }
             
+            guard self.activeRequestID == requestID else { return }
+            
             defer {
                 if self.activeRequestID == requestID {
                     self.task = nil

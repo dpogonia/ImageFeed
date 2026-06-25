@@ -68,6 +68,8 @@ extension URLSession {
                         "Ошибка декодирования: \(error.localizedDescription), " +
                         "Данные: \(String(data: data, encoding: .utf8) ?? "")"
                     )
+                    let dataString = String(data: data, encoding: .utf8) ?? ""
+                    print("[objectTask]: DecodingError - \(error), data: \(dataString)")
                     completion(.failure(NetworkError.decodingError(error)))
                 }
             case .failure(let error):
