@@ -15,4 +15,3 @@ enum Constants {
     static let defaultBaseURLString = "https://api.unsplash.com"
     static let unsplashAuthorizeURLString = "https://unsplash.com/oauth/authorize"
 }
-

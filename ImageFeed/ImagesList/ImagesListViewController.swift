@@ -9,18 +9,18 @@ import UIKit
 
 final class ImagesListViewController: UIViewController {
     
-    // MARK: - Outlets
-    
-    @IBOutlet private weak var tableView: UITableView?
-    
     // MARK: - Constants
     
     private enum Constants {
-        static let rowHeight: CGFloat = 200
         static let tableViewTopInset: CGFloat = 12
         static let tableViewBottomInset: CGFloat = 12
-        static let showSingleImageSegueIdentifier = "ShowSingleImage"
     }
+    
+    // MARK: - UI
+    
+    private let tableView = UITableView()
+    
+    // MARK: - Data
     
     private let photosName: [String] = Array(0..<20).map { "\($0)" }
     
@@ -31,77 +31,85 @@ final class ImagesListViewController: UIViewController {
         return formatter
     }()
     
+    // MARK: - Init
+    
+    init() {
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    // MARK: - Lifecycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        guard let tableView else {
-            assertionFailure("TableView outlet is not connected")
-            return
-        }
-
-        tableView.rowHeight = Constants.rowHeight
+        view.backgroundColor = UIColor(resource: .ypBlack)
+        setupTableView()
+    }
+    
+    // MARK: - Setup
+    
+    private func setupTableView() {
+        tableView.translatesAutoresizingMaskIntoConstraints = false
+        tableView.backgroundColor = UIColor(resource: .ypBlack)
+        tableView.separatorStyle = .none
+        tableView.dataSource = self
+        tableView.delegate = self
+        tableView.register(ImagesListCell.self, forCellReuseIdentifier: ImagesListCell.reuseIdentifier)
         tableView.contentInset = UIEdgeInsets(
             top: Constants.tableViewTopInset,
             left: 0,
             bottom: Constants.tableViewBottomInset,
             right: 0
         )
+        
+        view.addSubview(tableView)
+        
+        NSLayoutConstraint.activate([
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
     }
     
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == Constants.showSingleImageSegueIdentifier {
-            guard
-                let viewController = segue.destination as? SingleImageViewController,
-                let indexPath = sender as? IndexPath
-            else {
-                assertionFailure("Invalid segue destination")
-                return
-            }
-            
-            let image = UIImage(named: photosName[indexPath.row])
-            viewController.image = image
-        } else {
-            super.prepare(for: segue, sender: sender)
-        }
+    private func configCell(for cell: ImagesListCell, with indexPath: IndexPath) {
+        let image = UIImage(named: photosName[indexPath.row])
+        let date = dateFormatter.string(from: Date())
+        let isLiked = indexPath.row % 2 == 0
+        cell.configure(image: image, date: date, isLiked: isLiked)
+    }
+    
+    private func showSingleImage(at indexPath: IndexPath) {
+        guard let image = UIImage(named: photosName[indexPath.row]) else { return }
+        
+        let viewController = SingleImageViewController()
+        viewController.image = image
+        viewController.modalPresentationStyle = .fullScreen
+        present(viewController, animated: true)
     }
 }
 
 // MARK: - UITableViewDataSource
 
 extension ImagesListViewController: UITableViewDataSource {
-    func tableView(_ tableView: UITableView,
-                   numberOfRowsInSection section: Int) -> Int {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         photosName.count
     }
     
-    func tableView(_ tableView: UITableView,
-                   cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        guard let cell = tableView.dequeueReusableCell(
             withIdentifier: ImagesListCell.reuseIdentifier,
             for: indexPath
-        )
-        
-        guard let imageListCell = cell as? ImagesListCell else {
+        ) as? ImagesListCell else {
             return UITableViewCell()
         }
         
-        configCell(for: imageListCell, with: indexPath)
-        return imageListCell
-    }
-}
-
-extension ImagesListViewController {
-    func configCell(for cell: ImagesListCell, with indexPath: IndexPath) {
-        guard let image = UIImage(named: photosName[indexPath.row]) else {
-            return
-        }
-        
-        cell.cellImage?.image = image
-        cell.dateLabel?.text = dateFormatter.string(from: Date())
-
-        let isLiked = indexPath.row % 2 == 0
-        let likeImage = UIImage(resource: isLiked ? .likeButtonOn : .likeButtonOff)
-        cell.likeButton?.setImage(likeImage, for: .normal)
+        configCell(for: cell, with: indexPath)
+        return cell
     }
 }
 
@@ -109,11 +117,10 @@ extension ImagesListViewController {
 
 extension ImagesListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        performSegue(withIdentifier: Constants.showSingleImageSegueIdentifier, sender: indexPath)
+        showSingleImage(at: indexPath)
     }
     
-    func tableView(_ tableView: UITableView,
-                   heightForRowAt indexPath: IndexPath) -> CGFloat {
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         guard let image = UIImage(named: photosName[indexPath.row]) else {
             return 0
         }
@@ -123,9 +130,6 @@ extension ImagesListViewController: UITableViewDelegate {
         
         guard image.size.width > 0 else { return 0 }
         let scale = imageViewWidth / image.size.width
-        let cellHeight = image.size.height * scale + imageInsets.top + imageInsets.bottom
-        return cellHeight
+        return image.size.height * scale + imageInsets.top + imageInsets.bottom
     }
 }
-
-
