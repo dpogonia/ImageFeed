@@ -5,7 +5,19 @@
 //  Created by Dmitrii Pogonia on 07.05.2026.
 //
 
+import Kingfisher
 import UIKit
+
+enum FeedCellImageState {
+    case loading
+    case error
+    case finished(UIImage)
+}
+
+protocol ImagesListCellDelegate: AnyObject {
+    func imagesListCell(_ cell: ImagesListCell, didFinishLoadingImageWith size: CGSize)
+    func imageListCellDidTapLike(_ cell: ImagesListCell)
+}
 
 final class ImagesListCell: UITableViewCell {
     
@@ -13,9 +25,11 @@ final class ImagesListCell: UITableViewCell {
     
     static let reuseIdentifier = "ImagesListCell"
     
+    weak var delegate: ImagesListCellDelegate?
+    
     // MARK: - UI
     
-    private let cellImageView = UIImageView()
+    let cellImageView = UIImageView()
     private let likeButton = UIButton(type: .system)
     private let dateLabel = UILabel()
     
@@ -23,6 +37,7 @@ final class ImagesListCell: UITableViewCell {
     
     private let dateGradientLayer = CAGradientLayer()
     private let dateGradientHeight: CGFloat = 72
+    private var imageGradientView: AnimatedGradientView?
     
     // MARK: - Init
     
@@ -38,12 +53,44 @@ final class ImagesListCell: UITableViewCell {
     
     // MARK: - Lifecycle
     
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        delegate = nil
+        cellImageView.kf.cancelDownloadTask()
+        removeImageLoadingAnimation()
+        cellImageView.image = nil
+    }
+    
     override func layoutSubviews() {
         super.layoutSubviews()
         updateGradientFrame()
     }
     
     // MARK: - Config
+    
+    func configure(with photo: Photo, date: String?) {
+        dateLabel.text = date
+        dateLabel.isHidden = (date == nil)
+        setIsLiked(photo.isLiked)
+    }
+    
+    func setIsLiked(_ isLiked: Bool) {
+        let likeImage = UIImage(resource: isLiked ? .likeButtonOn : .likeButtonOff)
+        likeButton.setImage(likeImage, for: .normal)
+    }
+    
+    func setImageState(_ state: FeedCellImageState) {
+        switch state {
+        case .loading:
+            showImageLoadingAnimation()
+        case .error:
+            removeImageLoadingAnimation()
+            cellImageView.image = UIImage(resource: .rectangle)
+        case .finished(let image):
+            removeImageLoadingAnimation()
+            cellImageView.image = image
+        }
+    }
     
     func configure(image: UIImage?, date: String?, isLiked: Bool) {
         cellImageView.image = image
@@ -52,6 +99,12 @@ final class ImagesListCell: UITableViewCell {
         
         let likeImage = UIImage(resource: isLiked ? .likeButtonOn : .likeButtonOff)
         likeButton.setImage(likeImage, for: .normal)
+    }
+    
+    // MARK: - Actions
+    
+    @objc private func likeButtonClicked() {
+        delegate?.imageListCellDidTapLike(self)
     }
     
     // MARK: - Private helpers
@@ -65,9 +118,10 @@ final class ImagesListCell: UITableViewCell {
         cellImageView.contentMode = .scaleAspectFill
         cellImageView.clipsToBounds = true
         cellImageView.layer.cornerRadius = 16
+        cellImageView.kf.indicatorType = .activity
         
         likeButton.translatesAutoresizingMaskIntoConstraints = false
-        likeButton.isUserInteractionEnabled = false
+        likeButton.addTarget(self, action: #selector(likeButtonClicked), for: .touchUpInside)
         
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
         dateLabel.font = .systemFont(ofSize: 13)
@@ -127,5 +181,22 @@ final class ImagesListCell: UITableViewCell {
             width: bounds.width,
             height: height
         )
+    }
+    
+    private func showImageLoadingAnimation() {
+        guard imageGradientView == nil else { return }
+        
+        let gradientView = AnimatedGradientView(frame: cellImageView.bounds)
+        gradientView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        gradientView.layer.cornerRadius = cellImageView.layer.cornerRadius
+        gradientView.clipsToBounds = true
+        cellImageView.addSubview(gradientView)
+        gradientView.startAnimating()
+        imageGradientView = gradientView
+    }
+    
+    private func removeImageLoadingAnimation() {
+        imageGradientView?.stopAnimating()
+        imageGradientView = nil
     }
 }
