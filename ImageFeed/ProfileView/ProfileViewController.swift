@@ -30,6 +30,8 @@ final class ProfileViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        view.backgroundColor = UIColor(resource: .ypBlack)
+        
         setupAvatarImage()
         setupNameLabel()
         setupLoginNameLabel()
@@ -148,10 +150,19 @@ final class ProfileViewController: UIViewController {
     private func showLoadingAnimationIfNeeded() {
         guard animationGradientViews.isEmpty else { return }
         
-        addAnimatedGradient(to: avatarImageView, cornerRadius: 35)
-        addAnimatedGradient(to: nameLabel)
-        addAnimatedGradient(to: loginNameLabel)
-        addAnimatedGradient(to: descriptionLabel)
+        let hasAvatar = ProfileImageService.shared.avatarURL != nil
+            && avatarImageView.image != nil
+            && avatarImageView.image != UIImage(resource: .avatar)
+        
+        if !hasAvatar {
+            addAnimatedGradient(to: avatarImageView, cornerRadius: 35)
+        }
+        
+        if profileService.profile == nil {
+            addAnimatedGradient(to: nameLabel)
+            addAnimatedGradient(to: loginNameLabel)
+            addAnimatedGradient(to: descriptionLabel)
+        }
     }
     
     private func addAnimatedGradient(to view: UIView, cornerRadius: CGFloat = 0) {
@@ -220,7 +231,7 @@ final class ProfileViewController: UIViewController {
     }
     
     private func setupLogoutButton() {
-        let image = UIImage(resource: .logoutButton)
+        let image = UIImage(resource: .logoutButton).withRenderingMode(.alwaysOriginal)
         logoutButton.setImage(image, for: .normal)
         logoutButton.translatesAutoresizingMaskIntoConstraints = false
         logoutButton.addTarget(self, action: #selector(didTapLogoutButton), for: .touchUpInside)

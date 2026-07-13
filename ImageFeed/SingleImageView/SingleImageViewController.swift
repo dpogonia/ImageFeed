@@ -135,10 +135,12 @@ final class SingleImageViewController: UIViewController {
     
     private func loadImage(from url: URL) {
         UIBlockingProgressHUD.show()
+        
         imageView.kf.setImage(with: url) { [weak self] result in
-            UIBlockingProgressHUD.dismiss()
+            defer { UIBlockingProgressHUD.dismiss() }
             
             guard let self else { return }
+            
             switch result {
             case .success(let imageResult):
                 self.image = imageResult.image

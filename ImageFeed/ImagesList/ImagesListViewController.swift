@@ -211,7 +211,7 @@ extension ImagesListViewController: ImagesListCellDelegate {
         guard currentSize != size else { return }
         
         imagesListService.setPhotoSize(at: indexPath.row, size: size)
-        photos[indexPath.row].size = size
+        photos = photos.withReplaced(itemAt: indexPath.row, newValue: photos[indexPath.row].withSize(size))
         tableView.reloadRows(at: [indexPath], with: .automatic)
     }
     
@@ -221,15 +221,15 @@ extension ImagesListViewController: ImagesListCellDelegate {
         
         UIBlockingProgressHUD.show()
         imagesListService.changeLike(photoId: photo.id, isLike: !photo.isLiked) { [weak self] result in
+            defer { UIBlockingProgressHUD.dismiss() }
+            
             guard let self else { return }
             
             switch result {
             case .success:
                 self.photos = self.imagesListService.photos
                 cell.setIsLiked(self.photos[indexPath.row].isLiked)
-                UIBlockingProgressHUD.dismiss()
             case .failure:
-                UIBlockingProgressHUD.dismiss()
                 self.showLikeError()
             }
         }

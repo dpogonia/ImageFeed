@@ -49,9 +49,7 @@ final class OAuth2Service {
         activeRequestID = requestID
         
         let task = urlSession.objectTask(for: request) { [weak self] (result: Result<OAuthTokenResponseBody, Error>) in
-            guard let self else { return }
-            
-            guard self.activeRequestID == requestID else { return }
+            guard let self, self.activeRequestID == requestID else { return }
             
             defer {
                 if self.activeRequestID == requestID {
@@ -95,7 +93,7 @@ final class OAuth2Service {
         }
         
         var request = URLRequest(url: url)
-        request.httpMethod = "POST"
+        request.httpMethod = HTTPMethod.post.rawValue
         return request
     }
 }

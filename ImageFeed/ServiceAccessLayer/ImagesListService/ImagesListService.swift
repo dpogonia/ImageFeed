@@ -11,7 +11,7 @@ import Foundation
 final class ImagesListService {
     
     static let shared = ImagesListService()
-    static let didChangeNotification = Notification.Name(rawValue: "ImagesListServiceDidChange")
+    static let didChangeNotification = Notification.Name("ImagesListServiceDidChange")
     
     private(set) var photos: [Photo] = []
     
@@ -35,7 +35,7 @@ final class ImagesListService {
     func setPhotoSize(at index: Int, size: CGSize) {
         assert(Thread.isMainThread)
         guard photos.indices.contains(index) else { return }
-        photos[index].size = size
+        photos = photos.withReplaced(itemAt: index, newValue: photos[index].withSize(size))
     }
     
     func fetchPhotosNextPage() {
@@ -56,23 +56,21 @@ final class ImagesListService {
         }
         
         let task = urlSession.objectTask(for: request) { [weak self] (result: Result<[PhotoResult], Error>) in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                
-                defer { self.task = nil }
-                
-                switch result {
-                case .success(let photoResults):
-                    let newPhotos = photoResults.map { Self.makePhoto(from: $0) }
-                    self.photos.append(contentsOf: newPhotos)
-                    self.lastLoadedPage = nextPage
-                    NotificationCenter.default.post(
-                        name: ImagesListService.didChangeNotification,
-                        object: self
-                    )
-                case .failure(let error):
-                    print("[fetchPhotosNextPage]: \(error)")
-                }
+            guard let self else { return }
+            
+            defer { self.task = nil }
+            
+            switch result {
+            case .success(let photoResults):
+                let newPhotos = photoResults.map { Self.makePhoto(from: $0) }
+                self.photos.append(contentsOf: newPhotos)
+                self.lastLoadedPage = nextPage
+                NotificationCenter.default.post(
+                    name: ImagesListService.didChangeNotification,
+                    object: self
+                )
+            case .failure(let error):
+                print("[fetchPhotosNextPage]: \(error)")
             }
         }
         
@@ -87,7 +85,10 @@ final class ImagesListService {
     ) {
         assert(Thread.isMainThread)
         
-        guard likeTask == nil else { return }
+        guard likeTask == nil else {
+            completion(.failure(NetworkError.invalidRequest))
+            return
+        }
         
         guard let token = OAuth2TokenStorage.shared.token else {
             print("[changeLike]: NetworkError.invalidRequest - token is missing")
@@ -101,33 +102,25 @@ final class ImagesListService {
             return
         }
         
-        let task = urlSession.objectTask(for: request) { [weak self] (result: Result<PhotoResult, Error>) in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                
-                defer { self.likeTask = nil }
-                
-                switch result {
-                case .success:
-                    if let index = self.photos.firstIndex(where: { $0.id == photoId }) {
-                        let photo = self.photos[index]
-                        let newPhoto = Photo(
-                            id: photo.id,
-                            size: photo.size,
-                            createdAt: photo.createdAt,
-                            welcomeDescription: photo.welcomeDescription,
-                            thumbImageURL: photo.thumbImageURL,
-                            largeImageURL: photo.largeImageURL,
-                            fullImageURL: photo.fullImageURL,
-                            isLiked: !photo.isLiked
-                        )
-                        self.photos = self.photos.withReplaced(itemAt: index, newValue: newPhoto)
-                    }
-                    completion(.success(()))
-                case .failure(let error):
-                    print("[changeLike]: \(error)")
-                    completion(.failure(error))
+        let task = urlSession.objectTask(for: request) { [weak self] (result: Result<LikeResult, Error>) in
+            defer { self?.likeTask = nil }
+            
+            guard let self else {
+                completion(.failure(NetworkError.urlSessionError))
+                return
+            }
+            
+            switch result {
+            case .success(let likeResult):
+                if let index = self.photos.firstIndex(where: { $0.id == photoId }) {
+                    let photo = self.photos[index]
+                    let newPhoto = photo.withIsLiked(likeResult.photo.likedByUser)
+                    self.photos = self.photos.withReplaced(itemAt: index, newValue: newPhoto)
                 }
+                completion(.success(()))
+            case .failure(let error):
+                print("[changeLike]: \(error)")
+                completion(.failure(error))
             }
         }
         
@@ -147,7 +140,7 @@ final class ImagesListService {
         guard let url = components?.url else { return nil }
         
         var request = URLRequest(url: url)
-        request.httpMethod = "GET"
+        request.httpMethod = HTTPMethod.get.rawValue
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         return request
     }
@@ -158,7 +151,7 @@ final class ImagesListService {
         }
         
         var request = URLRequest(url: url)
-        request.httpMethod = isLike ? "POST" : "DELETE"
+        request.httpMethod = (isLike ? HTTPMethod.post : HTTPMethod.delete).rawValue
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         return request
     }

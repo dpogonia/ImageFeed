@@ -30,7 +30,7 @@ final class ImagesListCell: UITableViewCell {
     // MARK: - UI
     
     let cellImageView = UIImageView()
-    private let likeButton = UIButton(type: .system)
+    private let likeButton = UIButton(type: .custom)
     private let dateLabel = UILabel()
     
     // MARK: - Private properties
@@ -76,6 +76,7 @@ final class ImagesListCell: UITableViewCell {
     
     func setIsLiked(_ isLiked: Bool) {
         let likeImage = UIImage(resource: isLiked ? .likeButtonOn : .likeButtonOff)
+            .withRenderingMode(.alwaysOriginal)
         likeButton.setImage(likeImage, for: .normal)
     }
     
@@ -98,6 +99,7 @@ final class ImagesListCell: UITableViewCell {
         dateLabel.isHidden = (date == nil)
         
         let likeImage = UIImage(resource: isLiked ? .likeButtonOn : .likeButtonOff)
+            .withRenderingMode(.alwaysOriginal)
         likeButton.setImage(likeImage, for: .normal)
     }
     
