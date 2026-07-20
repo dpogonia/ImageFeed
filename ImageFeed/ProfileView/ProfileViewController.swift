@@ -23,11 +23,14 @@ final class ProfileViewController: UIViewController {
     private let profileService = ProfileService.shared
     
     private var profileImageServiceObserver: NSObjectProtocol?
+    private var animationGradientViews: [AnimatedGradientView] = []
     
     // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        view.backgroundColor = UIColor(resource: .ypBlack)
         
         setupAvatarImage()
         setupNameLabel()
@@ -45,8 +48,14 @@ final class ProfileViewController: UIViewController {
             queue: .main
         ) { [weak self] _ in
             self?.updateAvatar()
+            self?.removeAnimationLayers()
         }
         updateAvatar()
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        showLoadingAnimationIfNeeded()
     }
     
     deinit {
@@ -61,7 +70,12 @@ final class ProfileViewController: UIViewController {
         guard
             let profileImageURL = ProfileImageService.shared.avatarURL,
             let imageURL = URL(string: profileImageURL)
-        else { return }
+        else {
+            showLoadingAnimationIfNeeded()
+            return
+        }
+        
+        showLoadingAnimationIfNeeded()
         
         let processor = RoundCornerImageProcessor(cornerRadius: 35)
         avatarImageView.kf.indicatorType = .activity
@@ -73,9 +87,13 @@ final class ProfileViewController: UIViewController {
                 .scaleFactor(UIScreen.main.scale),
                 .cacheOriginalImage
             ]
-        ) { result in
-            if case .failure(let error) = result {
+        ) { [weak self] result in
+            switch result {
+            case .success:
+                self?.removeAnimationLayers()
+            case .failure(let error):
                 print("[updateAvatar]: \(error)")
+                self?.removeAnimationLayers()
             }
         }
     }
@@ -125,6 +143,41 @@ final class ProfileViewController: UIViewController {
                 .foregroundColor: UIColor(resource: .ypWhite)
             ]
         )
+    }
+    
+    // MARK: - Animations
+    
+    private func showLoadingAnimationIfNeeded() {
+        guard animationGradientViews.isEmpty else { return }
+        
+        let hasAvatar = ProfileImageService.shared.avatarURL != nil
+            && avatarImageView.image != nil
+            && avatarImageView.image != UIImage(resource: .avatar)
+        
+        if !hasAvatar {
+            addAnimatedGradient(to: avatarImageView, cornerRadius: 35)
+        }
+        
+        if profileService.profile == nil {
+            addAnimatedGradient(to: nameLabel)
+            addAnimatedGradient(to: loginNameLabel)
+            addAnimatedGradient(to: descriptionLabel)
+        }
+    }
+    
+    private func addAnimatedGradient(to view: UIView, cornerRadius: CGFloat = 0) {
+        let gradientView = AnimatedGradientView(frame: view.bounds)
+        gradientView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        gradientView.layer.cornerRadius = cornerRadius
+        gradientView.clipsToBounds = true
+        view.addSubview(gradientView)
+        gradientView.startAnimating()
+        animationGradientViews.append(gradientView)
+    }
+    
+    private func removeAnimationLayers() {
+        animationGradientViews.forEach { $0.stopAnimating() }
+        animationGradientViews.removeAll()
     }
     
     // MARK: - Setup
@@ -178,7 +231,7 @@ final class ProfileViewController: UIViewController {
     }
     
     private func setupLogoutButton() {
-        let image = UIImage(resource: .logoutButton)
+        let image = UIImage(resource: .logoutButton).withRenderingMode(.alwaysOriginal)
         logoutButton.setImage(image, for: .normal)
         logoutButton.translatesAutoresizingMaskIntoConstraints = false
         logoutButton.addTarget(self, action: #selector(didTapLogoutButton), for: .touchUpInside)
@@ -215,10 +268,7 @@ final class ProfileViewController: UIViewController {
     
     private func performLogout() {
         avatarImageView.kf.cancelDownloadTask()
-        
-        OAuth2TokenStorage.shared.token = nil
-        ProfileService.shared.clearProfileCache()
-        ProfileImageService.shared.clearAvatarCache()
+        ProfileLogoutService.shared.logout()
         switchToSplashScreen()
     }
     
