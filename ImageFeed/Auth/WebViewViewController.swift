@@ -1,0 +1,132 @@
+//
+//  WebViewViewController.swift
+//  ImageFeed
+//
+//  Created by Dmitrii Pogonia on 22.05.2026.
+//
+
+import UIKit
+import WebKit
+
+nonisolated public protocol WebViewViewControllerProtocol: AnyObject {
+    var presenter: WebViewPresenterProtocol? { get set }
+    func load(request: URLRequest)
+    func setProgressValue(_ newValue: Float)
+    func setProgressHidden(_ isHidden: Bool)
+}
+
+final class WebViewViewController: UIViewController & WebViewViewControllerProtocol {
+    
+    // MARK: - UI
+    
+    private let webView = WKWebView()
+    private let progressView = UIProgressView(progressViewStyle: .default)
+    
+    // MARK: - Properties
+    
+    var presenter: WebViewPresenterProtocol?
+    weak var delegate: WebViewViewControllerDelegate?
+    
+    private var estimatedProgressObservation: NSKeyValueObservation?
+    
+    // MARK: - Init
+    
+    init() {
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    // MARK: - Lifecycle
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        setupUI()
+        webView.navigationDelegate = self
+        
+        estimatedProgressObservation = webView.observe(
+            \.estimatedProgress,
+            options: []
+        ) { [weak self] _, _ in
+            guard let self else { return }
+            self.presenter?.didUpdateProgressValue(self.webView.estimatedProgress)
+        }
+        
+        presenter?.viewDidLoad()
+    }
+    
+    // MARK: - Setup
+    
+    private func setupUI() {
+        view.backgroundColor = .systemBackground
+        
+        webView.translatesAutoresizingMaskIntoConstraints = false
+        webView.accessibilityIdentifier = "UnsplashWebView"
+        webView.backgroundColor = UIColor(resource: .ypWhite)
+        
+        progressView.translatesAutoresizingMaskIntoConstraints = false
+        progressView.progressTintColor = UIColor(resource: .ypBlack)
+        
+        view.addSubview(webView)
+        view.addSubview(progressView)
+        
+        let safeArea = view.safeAreaLayoutGuide
+        
+        NSLayoutConstraint.activate([
+            progressView.topAnchor.constraint(equalTo: safeArea.topAnchor),
+            progressView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor),
+            progressView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor),
+            
+            webView.topAnchor.constraint(equalTo: safeArea.topAnchor),
+            webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+    }
+    
+    // MARK: - WebViewViewControllerProtocol
+    
+    func load(request: URLRequest) {
+        webView.load(request)
+    }
+    
+    func setProgressValue(_ newValue: Float) {
+        progressView.progress = newValue
+    }
+    
+    func setProgressHidden(_ isHidden: Bool) {
+        progressView.isHidden = isHidden
+    }
+}
+
+protocol WebViewViewControllerDelegate: AnyObject {
+    func webViewViewController(_ vc: WebViewViewController, didAuthenticateWithCode code: String)
+    func webViewViewControllerDidCancel(_ vc: WebViewViewController)
+}
+    
+// MARK: - WKNavigationDelegate
+
+extension WebViewViewController: WKNavigationDelegate {
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+    ) {
+        if let code = code(from: navigationAction) {
+            delegate?.webViewViewController(self, didAuthenticateWithCode: code)
+            decisionHandler(.cancel)
+        } else {
+            decisionHandler(.allow)
+        }
+    }
+
+    private func code(from navigationAction: WKNavigationAction) -> String? {
+        if let url = navigationAction.request.url {
+            return presenter?.code(from: url)
+        }
+        return nil
+    }
+}
