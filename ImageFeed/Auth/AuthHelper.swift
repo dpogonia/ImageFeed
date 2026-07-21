@@ -13,6 +13,16 @@ protocol AuthHelperProtocol {
 }
 
 nonisolated final class AuthHelper: AuthHelperProtocol {
+    private enum AuthQuery {
+        static let clientId = "client_id"
+        static let redirectURI = "redirect_uri"
+        static let responseType = "response_type"
+        static let scope = "scope"
+        static let code = "code"
+        static let responseTypeCode = "code"
+        static let nativePath = "/oauth/authorize/native"
+    }
+
     let configuration: AuthConfiguration
 
     init(configuration: AuthConfiguration = .standard) {
@@ -34,10 +44,10 @@ nonisolated final class AuthHelper: AuthHelperProtocol {
         }
 
         urlComponents.queryItems = [
-            URLQueryItem(name: "client_id", value: configuration.accessKey),
-            URLQueryItem(name: "redirect_uri", value: configuration.redirectURI),
-            URLQueryItem(name: "response_type", value: "code"),
-            URLQueryItem(name: "scope", value: configuration.accessScope)
+            URLQueryItem(name: AuthQuery.clientId, value: configuration.accessKey),
+            URLQueryItem(name: AuthQuery.redirectURI, value: configuration.redirectURI),
+            URLQueryItem(name: AuthQuery.responseType, value: AuthQuery.responseTypeCode),
+            URLQueryItem(name: AuthQuery.scope, value: configuration.accessScope)
         ]
 
         return urlComponents.url
@@ -45,9 +55,9 @@ nonisolated final class AuthHelper: AuthHelperProtocol {
 
     func code(from url: URL) -> String? {
         if let urlComponents = URLComponents(string: url.absoluteString),
-           urlComponents.path == "/oauth/authorize/native",
+           urlComponents.path == AuthQuery.nativePath,
            let items = urlComponents.queryItems,
-           let codeItem = items.first(where: { $0.name == "code" })
+           let codeItem = items.first(where: { $0.name == AuthQuery.code })
         {
             return codeItem.value
         } else {

@@ -5,8 +5,6 @@
 //  Created by Dmitrii Pogonia on 21.05.2026.
 //
 
-import Foundation
-
 enum Constants {
     static let accessKey = "GOm2kpBPOjbJAEPxXaLvQSdCURftEhSgvONGYpRm3SU"
     static let secretKey = "55DSaZ6wVixRbPFLOkEoN8L8CCjYJGNgz7tDK9kmSzM"

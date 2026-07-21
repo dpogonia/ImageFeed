@@ -16,7 +16,12 @@ nonisolated public protocol WebViewPresenterProtocol: AnyObject {
 
 nonisolated final class WebViewPresenter: WebViewPresenterProtocol {
     weak var view: WebViewViewControllerProtocol?
-    var authHelper: AuthHelperProtocol
+    private let authHelper: AuthHelperProtocol
+
+    private enum Progress {
+        static let completedValue: Float = 1.0
+        static let epsilon: Float = 0.0001
+    }
 
     init(authHelper: AuthHelperProtocol) {
         self.authHelper = authHelper
@@ -24,7 +29,7 @@ nonisolated final class WebViewPresenter: WebViewPresenterProtocol {
 
     func viewDidLoad() {
         guard let request = authHelper.authRequest() else {
-            assertionFailure("Failed to construct authorization URLRequest")
+            print("Failed to construct authorization URLRequest")
             return
         }
 
@@ -41,7 +46,7 @@ nonisolated final class WebViewPresenter: WebViewPresenterProtocol {
     }
 
     func shouldHideProgress(for value: Float) -> Bool {
-        abs(value - 1.0) <= 0.0001
+        abs(value - Progress.completedValue) <= Progress.epsilon
     }
 
     func code(from url: URL) -> String? {

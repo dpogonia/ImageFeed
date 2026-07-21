@@ -8,6 +8,21 @@
 import XCTest
 
 final class ImageFeedUITests: XCTestCase {
+    private enum AccessibilityIdentifier {
+        static let authenticateButton = "Authenticate"
+        static let unsplashWebView = "UnsplashWebView"
+        static let loginButton = "Login"
+        static let likeButtonOff = "like button off"
+        static let likeButtonOn = "like button on"
+        static let navBackButtonWhite = "nav back button white"
+        static let logoutButton = "logout button"
+    }
+
+    private enum Alert {
+        static let logoutTitle = "Выход"
+        static let confirmButton = "Да"
+    }
+
     private let app = XCUIApplication()
     private let login = ""
     private let password = ""
@@ -20,9 +35,9 @@ final class ImageFeedUITests: XCTestCase {
     }
 
     func testAuth() throws {
-        app.buttons["Authenticate"].tap()
+        app.buttons[AccessibilityIdentifier.authenticateButton].tap()
 
-        let webView = app.webViews["UnsplashWebView"]
+        let webView = app.webViews[AccessibilityIdentifier.unsplashWebView]
 
         XCTAssertTrue(webView.waitForExistence(timeout: 5))
 
@@ -40,7 +55,7 @@ final class ImageFeedUITests: XCTestCase {
         passwordTextField.typeText(password)
         webView.swipeUp()
 
-        webView.buttons["Login"].tap()
+        webView.buttons[AccessibilityIdentifier.loginButton].tap()
 
         let tablesQuery = app.tables
         let cell = tablesQuery.children(matching: .cell).element(boundBy: 0)
@@ -59,8 +74,8 @@ final class ImageFeedUITests: XCTestCase {
 
         let cellToLike = tablesQuery.children(matching: .cell).element(boundBy: 1)
 
-        cellToLike.buttons["like button off"].tap()
-        cellToLike.buttons["like button on"].tap()
+        cellToLike.buttons[AccessibilityIdentifier.likeButtonOff].tap()
+        cellToLike.buttons[AccessibilityIdentifier.likeButtonOn].tap()
 
         sleep(2)
 
@@ -72,7 +87,7 @@ final class ImageFeedUITests: XCTestCase {
         image.pinch(withScale: 3, velocity: 1)
         image.pinch(withScale: 0.5, velocity: -1)
 
-        let navBackButtonWhiteButton = app.buttons["nav back button white"]
+        let navBackButtonWhiteButton = app.buttons[AccessibilityIdentifier.navBackButtonWhite]
         navBackButtonWhiteButton.tap()
     }
 
@@ -83,10 +98,10 @@ final class ImageFeedUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts[profileName].exists)
         XCTAssertTrue(app.staticTexts[profileLogin].exists)
 
-        app.buttons["logout button"].tap()
+        app.buttons[AccessibilityIdentifier.logoutButton].tap()
 
-        app.alerts["Выход"].scrollViews.otherElements.buttons["Да"].tap()
+        app.alerts[Alert.logoutTitle].scrollViews.otherElements.buttons[Alert.confirmButton].tap()
 
-        XCTAssertTrue(app.buttons["Authenticate"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons[AccessibilityIdentifier.authenticateButton].waitForExistence(timeout: 5))
     }
 }
