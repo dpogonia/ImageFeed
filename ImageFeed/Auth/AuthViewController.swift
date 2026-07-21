@@ -58,6 +58,7 @@ final class AuthViewController: UIViewController {
         loginButton.setTitleColor(UIColor(resource: .ypBlack), for: .normal)
         loginButton.layer.cornerRadius = 16
         loginButton.layer.masksToBounds = true
+        loginButton.accessibilityIdentifier = "Authenticate"
         loginButton.addTarget(self, action: #selector(loginButtonTapped), for: .touchUpInside)
         
         view.addSubview(logoImageView)
@@ -89,6 +90,10 @@ final class AuthViewController: UIViewController {
         guard !isAuthorizing else { return }
         
         let webViewViewController = WebViewViewController()
+        let authHelper = AuthHelper()
+        let webViewPresenter = WebViewPresenter(authHelper: authHelper)
+        webViewViewController.presenter = webViewPresenter
+        webViewPresenter.view = webViewViewController
         webViewViewController.delegate = self
         navigationController?.pushViewController(webViewViewController, animated: true)
     }

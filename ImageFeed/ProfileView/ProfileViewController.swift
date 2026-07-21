@@ -8,7 +8,14 @@
 import UIKit
 import Kingfisher
 
-final class ProfileViewController: UIViewController {
+nonisolated protocol ProfileViewControllerProtocol: AnyObject {
+    var presenter: ProfilePresenterProtocol? { get set }
+    func updateProfileDetails(with profile: Profile)
+    func updateAvatar(with url: URL)
+    func switchToSplashScreen()
+}
+
+final class ProfileViewController: UIViewController & ProfileViewControllerProtocol {
     
     // MARK: - Views
     
@@ -18,12 +25,17 @@ final class ProfileViewController: UIViewController {
     private lazy var descriptionLabel = UILabel()
     private lazy var logoutButton = UIButton()
     
-    // MARK: - Services
+    // MARK: - Properties
     
-    private let profileService = ProfileService.shared
-    
-    private var profileImageServiceObserver: NSObjectProtocol?
+    var presenter: ProfilePresenterProtocol?
     private var animationGradientViews: [AnimatedGradientView] = []
+    
+    // MARK: - Configuration
+    
+    func configure(_ presenter: ProfilePresenterProtocol) {
+        self.presenter = presenter
+        presenter.view = self
+    }
     
     // MARK: - Lifecycle
     
@@ -38,19 +50,11 @@ final class ProfileViewController: UIViewController {
         setupDescriptionLabel()
         setupLogoutButton()
         
-        if let profile = profileService.profile {
-            updateProfileDetails(profile: profile)
+        if presenter == nil {
+            configure(ProfileViewPresenter())
         }
         
-        profileImageServiceObserver = NotificationCenter.default.addObserver(
-            forName: ProfileImageService.didChangeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            self?.updateAvatar()
-            self?.removeAnimationLayers()
-        }
-        updateAvatar()
+        presenter?.viewDidLoad()
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -58,47 +62,9 @@ final class ProfileViewController: UIViewController {
         showLoadingAnimationIfNeeded()
     }
     
-    deinit {
-        if let profileImageServiceObserver {
-            NotificationCenter.default.removeObserver(profileImageServiceObserver)
-        }
-    }
+    // MARK: - ProfileViewControllerProtocol
     
-    // MARK: - Profile UI
-    
-    private func updateAvatar() {
-        guard
-            let profileImageURL = ProfileImageService.shared.avatarURL,
-            let imageURL = URL(string: profileImageURL)
-        else {
-            showLoadingAnimationIfNeeded()
-            return
-        }
-        
-        showLoadingAnimationIfNeeded()
-        
-        let processor = RoundCornerImageProcessor(cornerRadius: 35)
-        avatarImageView.kf.indicatorType = .activity
-        avatarImageView.kf.setImage(
-            with: imageURL,
-            placeholder: UIImage(resource: .avatar),
-            options: [
-                .processor(processor),
-                .scaleFactor(UIScreen.main.scale),
-                .cacheOriginalImage
-            ]
-        ) { [weak self] result in
-            switch result {
-            case .success:
-                self?.removeAnimationLayers()
-            case .failure(let error):
-                print("[updateAvatar]: \(error)")
-                self?.removeAnimationLayers()
-            }
-        }
-    }
-    
-    private func updateProfileDetails(profile: Profile) {
+    func updateProfileDetails(with profile: Profile) {
         let name = profile.name.isEmpty ? "Имя не указано" : profile.name
         nameLabel.attributedText = NSAttributedString(
             string: name,
@@ -143,6 +109,40 @@ final class ProfileViewController: UIViewController {
                 .foregroundColor: UIColor(resource: .ypWhite)
             ]
         )
+        
+        removeAnimationLayers()
+    }
+    
+    func updateAvatar(with url: URL) {
+        showLoadingAnimationIfNeeded()
+        
+        let processor = RoundCornerImageProcessor(cornerRadius: 35)
+        avatarImageView.kf.indicatorType = .activity
+        avatarImageView.kf.setImage(
+            with: url,
+            placeholder: UIImage(resource: .avatar),
+            options: [
+                .processor(processor),
+                .scaleFactor(UIScreen.main.scale),
+                .cacheOriginalImage
+            ]
+        ) { [weak self] result in
+            switch result {
+            case .success:
+                self?.removeAnimationLayers()
+            case .failure(let error):
+                print("[updateAvatar]: \(error)")
+                self?.removeAnimationLayers()
+            }
+        }
+    }
+    
+    func switchToSplashScreen() {
+        guard let window = view.window else {
+            assertionFailure("Invalid window configuration")
+            return
+        }
+        window.rootViewController = SplashViewController()
     }
     
     // MARK: - Animations
@@ -158,7 +158,7 @@ final class ProfileViewController: UIViewController {
             addAnimatedGradient(to: avatarImageView, cornerRadius: 35)
         }
         
-        if profileService.profile == nil {
+        if ProfileService.shared.profile == nil {
             addAnimatedGradient(to: nameLabel)
             addAnimatedGradient(to: loginNameLabel)
             addAnimatedGradient(to: descriptionLabel)
@@ -234,6 +234,7 @@ final class ProfileViewController: UIViewController {
         let image = UIImage(resource: .logoutButton).withRenderingMode(.alwaysOriginal)
         logoutButton.setImage(image, for: .normal)
         logoutButton.translatesAutoresizingMaskIntoConstraints = false
+        logoutButton.accessibilityIdentifier = "logout button"
         logoutButton.addTarget(self, action: #selector(didTapLogoutButton), for: .touchUpInside)
         view.addSubview(logoutButton)
         
@@ -268,15 +269,6 @@ final class ProfileViewController: UIViewController {
     
     private func performLogout() {
         avatarImageView.kf.cancelDownloadTask()
-        ProfileLogoutService.shared.logout()
-        switchToSplashScreen()
-    }
-    
-    private func switchToSplashScreen() {
-        guard let window = view.window else {
-            assertionFailure("Invalid window configuration")
-            return
-        }
-        window.rootViewController = SplashViewController()
+        presenter?.removeUserData()
     }
 }

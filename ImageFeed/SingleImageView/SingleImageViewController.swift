@@ -83,6 +83,7 @@ final class SingleImageViewController: UIViewController {
         backButton.translatesAutoresizingMaskIntoConstraints = false
         backButton.setImage(UIImage(resource: .backward), for: .normal)
         backButton.tintColor = .white
+        backButton.accessibilityIdentifier = "nav back button white"
         
         shareButton.translatesAutoresizingMaskIntoConstraints = false
         shareButton.setImage(

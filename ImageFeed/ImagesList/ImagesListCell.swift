@@ -78,6 +78,7 @@ final class ImagesListCell: UITableViewCell {
         let likeImage = UIImage(resource: isLiked ? .likeButtonOn : .likeButtonOff)
             .withRenderingMode(.alwaysOriginal)
         likeButton.setImage(likeImage, for: .normal)
+        likeButton.accessibilityIdentifier = isLiked ? "like button on" : "like button off"
     }
     
     func setImageState(_ state: FeedCellImageState) {
@@ -97,10 +98,7 @@ final class ImagesListCell: UITableViewCell {
         cellImageView.image = image
         dateLabel.text = date
         dateLabel.isHidden = (date == nil)
-        
-        let likeImage = UIImage(resource: isLiked ? .likeButtonOn : .likeButtonOff)
-            .withRenderingMode(.alwaysOriginal)
-        likeButton.setImage(likeImage, for: .normal)
+        setIsLiked(isLiked)
     }
     
     // MARK: - Actions

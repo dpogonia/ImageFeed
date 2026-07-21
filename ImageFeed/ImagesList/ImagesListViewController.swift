@@ -8,7 +8,12 @@
 import Kingfisher
 import UIKit
 
-final class ImagesListViewController: UIViewController {
+nonisolated protocol ImagesListViewControllerProtocol: AnyObject {
+    var presenter: ImagesListPresenterProtocol? { get set }
+    func updatePhotos(_ photos: [Photo])
+}
+
+final class ImagesListViewController: UIViewController & ImagesListViewControllerProtocol {
     
     // MARK: - Constants
     
@@ -25,6 +30,7 @@ final class ImagesListViewController: UIViewController {
     
     private let imagesListService = ImagesListService.shared
     private var photos: [Photo] = []
+    var presenter: ImagesListPresenterProtocol?
     
     private lazy var dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -43,8 +49,11 @@ final class ImagesListViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
     
-    deinit {
-        NotificationCenter.default.removeObserver(self)
+    // MARK: - Configuration
+    
+    func configure(_ presenter: ImagesListPresenterProtocol) {
+        self.presenter = presenter
+        presenter.view = self
     }
     
     // MARK: - Lifecycle
@@ -55,14 +64,25 @@ final class ImagesListViewController: UIViewController {
         view.backgroundColor = UIColor(resource: .ypBlack)
         setupTableView()
         
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(imagesListDidChange),
-            name: ImagesListService.didChangeNotification,
-            object: imagesListService
-        )
+        if presenter == nil {
+            configure(ImagesListPresenter())
+        }
         
-        imagesListService.fetchPhotosNextPage()
+        presenter?.viewDidLoad()
+    }
+    
+    // MARK: - ImagesListViewControllerProtocol
+    
+    func updatePhotos(_ photos: [Photo]) {
+        let oldCount = self.photos.count
+        let newCount = photos.count
+        self.photos = photos
+        if oldCount != newCount {
+            tableView.performBatchUpdates {
+                let indexPaths = (oldCount..<newCount).map { IndexPath(row: $0, section: 0) }
+                tableView.insertRows(at: indexPaths, with: .automatic)
+            }
+        }
     }
     
     // MARK: - Setup
@@ -99,22 +119,6 @@ final class ImagesListViewController: UIViewController {
         viewController.imageURL = imageURL
         viewController.modalPresentationStyle = .fullScreen
         present(viewController, animated: true)
-    }
-    
-    @objc private func imagesListDidChange() {
-        updateTableViewAnimated()
-    }
-    
-    private func updateTableViewAnimated() {
-        let oldCount = photos.count
-        let newCount = imagesListService.photos.count
-        photos = imagesListService.photos
-        if oldCount != newCount {
-            tableView.performBatchUpdates {
-                let indexPaths = (oldCount..<newCount).map { IndexPath(row: $0, section: 0) }
-                tableView.insertRows(at: indexPaths, with: .automatic)
-            }
-        }
     }
 }
 
@@ -185,7 +189,7 @@ extension ImagesListViewController: UITableViewDelegate {
         forRowAt indexPath: IndexPath
     ) {
         if indexPath.row + 1 == photos.count {
-            imagesListService.fetchPhotosNextPage()
+            presenter?.fetchPhotosNextPage()
         }
     }
     
